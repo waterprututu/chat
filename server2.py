@@ -1,5 +1,5 @@
 from Crypto.PublicKey import RSA
-from Crypto import Random
+# from Crypto import Random
 from Crypto.Cipher import PKCS1_OAEP
 from Crypto.Cipher import AES
 import tqdm
@@ -19,8 +19,8 @@ def generate_rsa_key():
     private_key = key.export_key('PEM')  # if u want binary use DER, if not PEM
     public_key = key.publickey().exportKey('PEM')
 
-    print(str(public_key, 'utf-8'))
-    print(private_key)
+    # print(str(public_key, 'utf-8'))
+    # print(private_key)
 
     rsa_public_key = RSA.importKey(public_key)
     f_public = open("public_key.txt", "wb")      # use "wb" write bytes
@@ -29,12 +29,15 @@ def generate_rsa_key():
     f_private = open("private_key.txt", "wb")
     f_private.write(private_key)
 
-def rsa_decrypt(text):
-    with open('private_key.txt', 'rb') as file:
-        key = file.read() #.replace('\n', '') u could use this if u were using strings
+    return (str(public_key, 'utf-8'), str(private_key, 'utf-8'))
+
+def rsa_decrypt(text, key):
+    # with open('private_key.txt', 'rb') as file:
+    #     key = file.read() #.replace('\n', '') u could use this if u were using strings
     rsa_private_key = RSA.importKey(key)
     rsa_private_key = PKCS1_OAEP.new(rsa_private_key)
     decrypted_text = rsa_private_key.decrypt(text)
+    return decrypted_text
 
 def get_encryption(key, data):
     #data=b"SECRETDATA"
@@ -55,7 +58,7 @@ def get_decryption(encrypted_file):
     #the person decrypting the message will need access to the key
     cipher = AES.new(key, AES.MODE_EAX, nonce)
     data = cipher.decrypt_and_verify(ciphertext, tag)
-    print(data.decode('UTF-8'))
+    print(data.decode('UTF-8')) 
 
 def recieve_packet(port):
     client_socket, address = s.accept()
@@ -95,23 +98,31 @@ print(f"[*] Listening as {SERVER_HOST}:{SERVER_PORT}")
 client_socket, address = s.accept()
 print(f"[+] {address} is connected. ")
 
+decryption_key = ""
+
+# send_packet("public_key.txt", 65535)
+# recieve_packet(5001)
+# print("[+] AES Encryption key received")
+
+# f = open("message.txt", "wb")
+# f.write(bytes("Key exchanged"))
+# f.close()
+# send_packet("message.txt", 65535)
+
 while 1:
+    print("[+] Waiting for packets...")
     received = client_socket.recv(BUFFER_SIZE).decode()
     if received:
-        print(received)
-        client_socket.send(received.encode())
-# filename, filesize = received.split(SEPARATOR)
-
-#send_packet("public_key.txt", 65535)
-#recieve_packet(5001)
-#print("[+] AES Encryption key received")
-
-#f = open("message.txt", "wb")
-#f.write(bytes("Key exchanged"))
-#f.close()
-#send_packet("message.txt", 65535)
-
-#while 1:
-#    recieve_packet(5001)
-#    f = open("message.txt", "rb")
-#    print(str(f.read(), 'utf-8'))
+        if received == "Request public key":
+            print(f"[+] Sending RSA public key to {address}")
+            pub_key, priv_key = generate_rsa_key()
+            print(pub_key)
+            client_socket.sendto(pub_key.encode(), address)
+        elif received.find("-----BEGIN AES KEY-----"):
+            key = received[received.find("-----BEGIN AES KEY-----"):received.find("-----END AES KEY-----")]
+            key = key[22:]
+            f = open("private_key.txt", "r")
+            priv_key = f.read()
+            rsa_decrypt(key, priv_key)
+        print(f"{address} says: ",received)
+        # client_socket.send(received.encode())
