@@ -14,6 +14,8 @@ BUFFER_SIZE = 65535
 
 s = socket.socket()
 
+dict_of_keys = dict()
+
 def generate_rsa_key():
     key = RSA.generate(2048)
     private_key = key.export_key('PEM')  # if u want binary use DER, if not PEM
@@ -98,6 +100,11 @@ print(f"[*] Listening as {SERVER_HOST}:{SERVER_PORT}")
 client_socket, address = s.accept()
 print(f"[+] {address} is connected. ")
 
+print(f"[+] Sending RSA public key to {address}")
+pub_key, priv_key = generate_rsa_key()
+dict_of_keys.update(client_socket, priv_key) # lehet hogy itten van problema
+client_socket.send(pub_key.encode())
+
 decryption_key = ""
 
 # send_packet("public_key.txt", 65535)
@@ -113,16 +120,11 @@ while 1:
     print("[+] Waiting for packets...")
     received = client_socket.recv(BUFFER_SIZE).decode()
     if received:
-        if received == "Request public key":
-            print(f"[+] Sending RSA public key to {address}")
-            pub_key, priv_key = generate_rsa_key()
-            print(pub_key)
-            client_socket.sendto(pub_key.encode(), address)
-        elif received.find("-----BEGIN AES KEY-----"):
+        print(f"{address} says: ",received)     
+        if received.find("-----BEGIN AES KEY-----") != -1:
             key = received[received.find("-----BEGIN AES KEY-----"):received.find("-----END AES KEY-----")]
             key = key[22:]
             f = open("private_key.txt", "r")
             priv_key = f.read()
             rsa_decrypt(key, priv_key)
-        print(f"{address} says: ",received)
         # client_socket.send(received.encode())
