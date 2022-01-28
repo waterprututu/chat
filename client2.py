@@ -67,7 +67,7 @@ def connect_to(ip, port):
 host = input("Server: ")
 host = host.strip()
 port = int(input("Port: "))
-connect_to(host , int(port))
+connect_to(host , port)
 
 s.send("Request public key".encode())
 print("[+] Request for RSA public key sent")
@@ -77,7 +77,7 @@ while 1:
     # s.send(x.encode())
     received = s.recv(BUFFER_SIZE).decode()
     if received:
-        if received.find("-----BEGIN PUBLIC KEY-----") and received.find("-----END PUBLIC KEY-----"):
+        if received.find("-----BEGIN PUBLIC KEY-----") != -1 and received.find("-----END PUBLIC KEY-----") != -1:
             print(received, "alalalala")
             key = received[received.find("-----BEGIN PUBLIC KEY-----"):received.find("-----END PUBLIC KEY-----")]
             print(key)
